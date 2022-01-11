@@ -18,10 +18,6 @@ on:
         default: 0.0.1
         type: string
         required: true
-
-    secrets:
-      gcloud-key:
-        required: true
     
 jobs:
   build:
