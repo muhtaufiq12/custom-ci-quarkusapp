@@ -1,0 +1,80 @@
+name: Java CI
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        description: 'what version of java are you using?'
+        type: string
+        default: '11'
+        required: false
+      app-name:
+        description: 'put your application name here'
+        default: dtn-test
+        type: string
+        required: true
+      app-version:
+        description: 'here for version of your application'
+        default: 0.0.1
+        type: string
+        required: true
+
+    secrets:
+      gcloud-key:
+        required: true
+    
+    push:
+      branches: [master]
+    pull_request:
+      branches: [master]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set Up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          cache: maven
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4.2
+        with:
+          maven-version: 3.8.2
+      - name: Build with Maven
+        # run: mvn --batch-mode --update-snapshots verify
+        run: ./mvnw package
+      - run: mkdir ${{ inputs.app-name }}-v${{ inputs.app-version }} && cp target/*.jar ${{ inputs.app-name }}/${{ inputs.app-name }}-v${{ inputs.app-version }}.jar
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.app-name }}-v${{ inputs.app-version }}
+          path: ${{ inputs.app-name }}-v${{ inputs.app-version }}
+      - run: |
+          cat << EOF > Dockerfile 
+          FROM openjdk:16-alpine3.13
+          WORKDIR /app
+          COPY --chown=1001 ${{ inputs.app-name }}/${{ inputs.app-name }}-v${{ inputs.app-version }}.jar /app/ 
+          COPY --chown=1001 ${{ inputs.app-name }}/lib/ /app/lib/
+          COPY --chown=1001 ${{ inputs.app-name }}/app/ /app/app/
+          COPY --chown=1001 ${{ inputs.app-name }}/quarkus/ /app/quarkus/
+          CMD ["java", "-jar", "${{ inputs.app-name }}-v${{ inputs.app-version }}.jar"]
+          EOF
+        shell: bash
+      - run: |
+          cat Dockerfile
+        shell: bash
+
+        # Push To Artifactory
+        - name: Set up Cloud SDK
+          uses: google-github-actions/setup-gcloud@v0
+          with:
+            project_id: rise-prod-327008
+            service_account_key: ${{ secrets.gcloud-key }}
+            export_default_credentials: true
+    
+
