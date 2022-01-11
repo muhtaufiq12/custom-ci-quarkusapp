@@ -73,7 +73,7 @@ jobs:
         - name: Set up Cloud SDK
           uses: google-github-actions/setup-gcloud@v0
           with:
-            project_id: rise-prod-327008
+            project_id: ${{ secrets.gcloud-project-id }}
             service_account_key: ${{ secrets.gcloud-key }}
             export_default_credentials: true
     
