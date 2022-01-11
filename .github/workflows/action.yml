@@ -23,11 +23,6 @@ on:
       gcloud-key:
         required: true
     
-    push:
-      branches: [test-branch]
-    pull_request:
-      branches: [test-branch]
-
 jobs:
   build:
 
